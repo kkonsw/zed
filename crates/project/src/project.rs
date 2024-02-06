@@ -1,3 +1,4 @@
+mod bookmarks;
 pub mod connection_manager;
 pub mod debounced_delay;
 pub mod lsp_command;
@@ -109,6 +110,7 @@ use util::{
 };
 use worktree::{Snapshot, Traversal};
 
+pub use bookmarks::Bookmark;
 pub use fs::*;
 pub use language::Location;
 #[cfg(any(test, feature = "test-support"))]
@@ -208,6 +210,7 @@ pub struct Project {
     hosted_project_id: Option<ProjectId>,
     dev_server_project_id: Option<client::DevServerProjectId>,
     search_history: SearchHistory,
+    bookmarks: Model<Vec<Bookmark>>,
 }
 
 pub enum LanguageServerToQuery {
@@ -739,6 +742,8 @@ impl Project {
                 hosted_project_id: None,
                 dev_server_project_id: None,
                 search_history: Self::new_search_history(),
+                // TODO: read from file?
+                bookmarks: cx.new_model(|_| Vec::new()),
             }
         })
     }
@@ -894,6 +899,8 @@ impl Project {
                     .dev_server_project_id
                     .map(|dev_server_project_id| DevServerProjectId(dev_server_project_id)),
                 search_history: Self::new_search_history(),
+                // TODO: read from file?
+                bookmarks: cx.new_model(|_| Vec::new()),
             };
             this.set_role(role, cx);
             for worktree in worktrees {
@@ -10153,6 +10160,14 @@ impl Project {
         } else {
             Vec::new()
         }
+    }
+
+    pub fn bookmarks(&self) -> &Model<Vec<Bookmark>> {
+        &self.bookmarks
+    }
+
+    pub fn bookmarks_mut(&mut self) -> &mut Model<Vec<Bookmark>> {
+        &mut self.bookmarks
     }
 }
 

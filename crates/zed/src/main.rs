@@ -370,6 +370,7 @@ fn init_ui(args: Args) {
 
         go_to_line::init(cx);
         file_finder::init(cx);
+        bookmarks::init(cx);
         tab_switcher::init(cx);
         outline::init(cx);
         project_symbols::init(cx);

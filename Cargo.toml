@@ -8,6 +8,7 @@ members = [
     "crates/assistant2",
     "crates/audio",
     "crates/auto_update",
+    "crates/bookmarks",
     "crates/breadcrumbs",
     "crates/call",
     "crates/channel",
@@ -149,6 +150,7 @@ assistant_tooling = { path = "crates/assistant_tooling" }
 audio = { path = "crates/audio" }
 auto_update = { path = "crates/auto_update" }
 base64 = "0.13"
+bookmarks = { path = "crates/bookmarks" }
 breadcrumbs = { path = "crates/breadcrumbs" }
 call = { path = "crates/call" }
 channel = { path = "crates/channel" }
