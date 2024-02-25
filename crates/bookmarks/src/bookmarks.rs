@@ -2,15 +2,16 @@ use annotation::AnnotationView;
 use editor::{scroll::Autoscroll, Editor};
 use fuzzy::{StringMatch, StringMatchCandidate};
 use gpui::{
-    actions, AppContext, DismissEvent, EventEmitter, FocusHandle, FocusableView, Model, Task, View,
-    WeakView,
+    actions, AnyElement, AppContext, DismissEvent, EventEmitter, FocusHandle, FocusableView, Model,
+    Task, View, WeakView,
 };
+use log::info;
 use ordered_float::OrderedFloat;
 use picker::{Picker, PickerDelegate};
 use project::Project;
 use std::sync::Arc;
 use text::Bias;
-use ui::{prelude::*, HighlightedLabel, ListItem, ListItemSpacing};
+use ui::{prelude::*, HighlightedLabel, ListItem, ListItemSpacing, Tooltip};
 use util::ResultExt;
 use workspace::{ModalView, Workspace};
 
@@ -105,6 +106,32 @@ impl BookmarkViewDelegate {
             project,
             matches: Vec::new(),
             selected_index: 0,
+        }
+    }
+
+    fn delete_bookmark(&self, ix: usize, cx: &mut ViewContext<Picker<Self>>) {
+        let bookmarks = self.project.read(cx).bookmarks().read(cx);
+        let bookmark = &bookmarks[ix];
+
+        info!("Deleting bookmark {}", bookmark.label());
+        if let Some(workspace) = self.workspace.upgrade() {
+            workspace.update(cx, |workspace, cx| {
+                let project = workspace.project();
+                project.update(cx, |project, cx| {
+                    project.bookmarks_mut().update(cx, |bookmarks, _cx| {
+                        // FIXME: inefficient remove
+                        bookmarks.remove(ix);
+                    })
+                });
+            });
+
+            cx.spawn(move |this, mut cx| async move {
+                this.update(&mut cx, move |picker, cx| {
+                    picker.delegate.set_selected_index(ix - 1, cx);
+                    picker.update_matches(picker.query(cx), cx)
+                })
+            })
+            .detach();
         }
     }
 }
@@ -224,6 +251,11 @@ impl PickerDelegate for BookmarkViewDelegate {
     ) -> Option<Self::ListItem> {
         let candidate = &self.matches[ix];
         let bookmarks = self.project.read(cx).bookmarks().read(cx);
+
+        if candidate.candidate_id >= bookmarks.len() {
+            return None;
+        }
+
         let bookmark = &bookmarks[candidate.candidate_id];
         let path = Arc::clone(&bookmark.project_path().path);
 
@@ -243,7 +275,28 @@ impl PickerDelegate for BookmarkViewDelegate {
                                 .size(LabelSize::Small)
                                 .color(Color::Muted),
                         ),
-                ),
+                )
+                .when(true, |el| {
+                    let delete_button = div()
+                        .child(
+                            IconButton::new("delete", IconName::Close)
+                                .icon_size(IconSize::Small)
+                                .on_click(cx.listener(move |this, _event, cx| {
+                                    cx.stop_propagation();
+                                    cx.prevent_default();
+
+                                    this.delegate.delete_bookmark(ix, cx)
+                                }))
+                                .tooltip(|cx| Tooltip::text("Delete Bookmark...", cx)),
+                        )
+                        .into_any_element();
+
+                    if self.selected_index() == ix {
+                        el.end_slot::<AnyElement>(delete_button)
+                    } else {
+                        el.end_hover_slot::<AnyElement>(delete_button)
+                    }
+                }),
         )
     }
 }
