@@ -8,6 +8,7 @@ publish = false
 path = "src/bookmarks.rs"
 
 [dependencies]
+db.workspace = true
 menu.workspace = true
 gpui.workspace = true
 ui.workspace = true

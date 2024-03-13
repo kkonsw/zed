@@ -16,6 +16,7 @@ use util::ResultExt;
 use workspace::{ModalView, Workspace};
 
 mod annotation;
+mod persistence;
 
 pub fn init(cx: &mut AppContext) {
     cx.observe_new_views(BookmarkView::register).detach();
